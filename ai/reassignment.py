@@ -13,13 +13,11 @@ def reassign_caregiver(caregivers, request_type, rejected_id):
     if not suitable:
         return None
 
-    # Select the caregiver with the lowest ETA
     best = min(suitable, key=lambda x: x["eta"])
 
     return best
 
 
-# Sample caregiver data
 caregivers = [
     {
         "id": "C01",
@@ -42,7 +40,6 @@ caregivers = [
 ]
 
 
-# C02 rejected the request
 rejected_caregiver = "C02"
 
 result = reassign_caregiver(
@@ -58,7 +55,7 @@ if result:
     print("New Recommended Caregiver:", result["id"])
     print("ETA:", result["eta"], "minutes")
     print("Reason:")
-    
+
     print("Available")
     print("Medical skill matched")
     print("Automatically reassigned")

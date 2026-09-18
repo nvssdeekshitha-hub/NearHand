@@ -3,7 +3,6 @@ from matching import find_caregiver
 from reassignment import reassign_caregiver
 
 
-# Caregiver data
 caregivers = [
     {
         "id": "C01",
@@ -26,7 +25,6 @@ caregivers = [
 ]
 
 
-# Senior request
 request_type = "Medical"
 urgency = "High"
 
@@ -39,7 +37,6 @@ print("Request Type:", request_type)
 print("Priority:", priority)
 
 
-# Step 2: Find caregiver
 caregiver = find_caregiver(caregivers, request_type)
 
 if caregiver:
@@ -52,7 +49,6 @@ if caregiver:
     print("- Required skill matched")
     print("- Fast response time")
 
-    # Step 3: Simulate rejection
     print("\nCaregiver", caregiver["id"], "rejected the request.")
 
     new_caregiver = reassign_caregiver(

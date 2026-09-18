@@ -1,0 +1,3 @@
+"""
+NEARHAND Database Test Suite
+"""

@@ -31,7 +31,6 @@ def analyze_text_request(message: str) -> AIAnalysisResult:
     # 1. If AI_API_KEY is set, try calling external LLM API
     if settings.AI_API_KEY:
         try:
-            # Example call using OpenAI standard structure or general REST LLM endpoint
             response = httpx.post(
                 "https://api.openai.com/v1/chat/completions",
                 headers={
@@ -74,22 +73,66 @@ def analyze_text_request(message: str) -> AIAnalysisResult:
 
     # 2. Rule-based Fallback Engine (Guaranteed 100% reliable local processing)
     msg_lower = message.lower()
-    has_telugu = is_telugu(message)
-    lang = "Telugu" if has_telugu else "English"
+    has_telugu_script = is_telugu(message)
 
     # Fall / Inability to stand keywords
     fall_keywords_en = ["fell", "fall", "can't stand", "cannot stand", "unable to stand", "dropped down", "slipped", "bathroom fall"]
-    fall_keywords_te = ["పడ్డాను", "లేవలేకపోతున్నాను", "పడిపోయాను", "పడి", "లేవలేను"]
-    
-    is_fall = any(kw in msg_lower for kw in fall_keywords_en) or any(kw in message for kw in fall_keywords_te)
-    
-    # Companionship keywords
-    companionship_keywords = ["alone", "lonely", "feel alone", "feeling lonely", "talk to someone", "bored"]
-    is_companionship = any(kw in msg_lower for kw in companionship_keywords)
+    fall_keywords_te_script = ["పడ్డాను", "లేవలేకపోతున్నాను", "పడిపోయాను", "పడి", "లేవలేను"]
+    fall_keywords_te_roman = ["padipoyanu", "padipoya", "levalekapothunnanu", "levalekapothunna", "levalenu", "padithe", "padda", "paddi"]
 
-    # Medical emergency keywords
-    medical_keywords = ["chest pain", "heart", "breath", "bleeding", "stroke", "unconscious", "headache severe"]
-    is_medical = any(kw in msg_lower for kw in medical_keywords)
+    is_fall = (
+        any(kw in msg_lower for kw in fall_keywords_en) or
+        any(kw in message for kw in fall_keywords_te_script) or
+        any(kw in msg_lower for kw in fall_keywords_te_roman)
+    )
+
+    # Medical emergency keywords (English, Telugu script & Romanized Telugu)
+    medical_keywords_en = [
+        "heart attack", "chest pain", "difficulty breathing", "can't breathe", "cannot breathe",
+        "unconscious", "heavy bleeding", "severe pain", "heart", "breath", "bleeding", "stroke"
+    ]
+    medical_keywords_te_script = ["గుండెపోటు", "ఛాతీ నొప్పి", "ఊపిరి పీల్చుకోలేకపోతున్నాను", "ఊపిరి"]
+    medical_keywords_te_roman = ["gundepotu", "gunde noppi", "gundenoppi", "gunde", "chati noppi", "chatinoppi", "oopiri", "upiri"]
+
+    is_medical = (
+        any(kw in msg_lower for kw in medical_keywords_en) or
+        any(kw in message for kw in medical_keywords_te_script) or
+        any(kw in msg_lower for kw in medical_keywords_te_roman)
+    )
+
+    # Medication keywords (English & Telugu)
+    medication_keywords_en = ["medicine", "medication", "tablet", "pill", "dose", "prescription"]
+    medication_keywords_te_script = ["మందులు", "మందు"]
+    medication_keywords_te_roman = ["mandhulu", "mandhu"]
+
+    is_medication = (
+        any(kw in msg_lower for kw in medication_keywords_en) or
+        any(kw in message for kw in medication_keywords_te_script) or
+        any(kw in msg_lower for kw in medication_keywords_te_roman)
+    )
+
+    # Companionship keywords (English, Telugu script & Romanized Telugu)
+    companionship_keywords_en = [
+        "alone", "lonely", "feel alone", "feeling lonely", "talk to someone",
+        "someone to talk to", "want company", "need company", "bored"
+    ]
+    companionship_keywords_te_script = ["ఒంటరిగా", "ఒంటరి"]
+    companionship_keywords_te_roman = ["ontariga", "ontari"]
+
+    is_companionship = (
+        any(kw in msg_lower for kw in companionship_keywords_en) or
+        any(kw in message for kw in companionship_keywords_te_script) or
+        any(kw in msg_lower for kw in companionship_keywords_te_roman)
+    )
+
+    # Determine language
+    is_romanized_telugu = (
+        any(kw in msg_lower for kw in fall_keywords_te_roman) or
+        any(kw in msg_lower for kw in medical_keywords_te_roman) or
+        any(kw in msg_lower for kw in medication_keywords_te_roman) or
+        any(kw in msg_lower for kw in companionship_keywords_te_roman)
+    )
+    lang = "Telugu" if (has_telugu_script or is_romanized_telugu) else "English"
 
     if is_fall:
         return AIAnalysisResult(
@@ -109,7 +152,17 @@ def analyze_text_request(message: str) -> AIAnalysisResult:
             risk_score=95,
             emergency=True,
             required_support=["medical_attention", "emergency_dispatch"],
-            explanation="Senior reports acute medical symptoms."
+            explanation="Senior reports acute medical emergency symptoms."
+        )
+    elif is_medication:
+        return AIAnalysisResult(
+            language=lang,
+            request_type="MEDICATION",
+            urgency="MEDIUM",
+            risk_score=40,
+            emergency=False,
+            required_support=["medication_assistance"],
+            explanation="Senior requested assistance with medication."
         )
     elif is_companionship:
         return AIAnalysisResult(
